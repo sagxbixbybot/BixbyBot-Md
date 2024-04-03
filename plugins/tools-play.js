@@ -1,116 +1,198 @@
-import {watchFile, unwatchFile} from 'fs';
-import chalk from 'chalk';
-import {fileURLToPath} from 'url';
-import fs from 'fs'; 
-import cheerio from 'cheerio';
 import fetch from 'node-fetch';
 import axios from 'axios';
-import moment from 'moment-timezone'
+import yts from 'yt-search';
+import {youtubedl, youtubedlv2} from '@bochilteam/scraper';
+import ytdl from 'ytdl-core';
+import {bestFormat, getUrlDl} from '../lib/y2dl.js';
+import YTDL from "../lib/ytdll.js";
+import fs from "fs";
+let limit1 = 100;
+let limit2 = 400;
+let limit_a1 = 50;
+let limit_a2 = 400;
+const handler = async (m, {conn, command, args, text, usedPrefix}) => {
+  if (!text) throw `> ⓘ 𝙄𝙣𝙜𝙧𝙚𝙨𝙚 𝙚𝙡 𝙣𝙤𝙢𝙗𝙧𝙚 𝙙𝙚 𝙡𝙖 𝙘𝙖𝙣𝙘𝙞𝙤𝙣 𝙦𝙪𝙚 𝙦𝙪𝙞𝙚𝙧𝙚`;
+  try {
+    const yt_play = await search(args.join(' '));
+    let additionalText = '';
+    if (command === 'play') {
+      additionalText = 'audio 🔊';
+    } else if (command === 'youtube') {
+      additionalText = 'video 📽';
+    }
+    await conn.sendMessage(m.chat, { react: { text: '⏳️', key: m.key } })
+    const texto1 = `♡₊˚ ₊✧♡₊˚ 📎・₊✧★🎸🎧°⋆♡₊˚ 🛰️
+> ⓘ 𝙏𝙄𝙏𝙐𝙇𝙊/𝙉𝙊𝙈𝘽𝙍𝙀:
+> • ${yt_play[0].title}
+> •┄┄┄┄┄┄┄┄┄┄┄┄•
+> ⓘ 𝙋𝙐𝘽𝙇𝙄𝘾𝘼𝘿𝙊 𝙀𝙉: 
+> • ${yt_play[0].ago}
+> •┄┄┄┄┄┄┄┄┄┄┄┄•
+> ⓘ 𝙇𝙄𝙉𝙆/𝙀𝙉𝙇𝘼𝘾𝙀:
+> • ${yt_play[0].url}
+♡₊˚ 🛰️₊✧♡₊˚ 📎・₊✧★🎸🎧°⋆♡₊˚ 📎
+01:06 ======⬤------------------------- ${secondString(yt_play[0].duration.seconds)}
+               ⇆ㅤ ◁ㅤ❚❚ㅤ▷ㅤ ↻
 
-global.botnumber = ""
-global.confirmCode = ""
+> *_Enviando ${additionalText}, Aguarde Un Momento..._*
+`.trim();
+        conn.sendMessage(m.chat, {image: {url: yt_play[0].thumbnail}, caption: texto1}, {quoted: m});
+    if (command == 'play') {
+    try {    
+    const q = '128kbps';
+    const v = yt_play[0].url;
+    const yt = await youtubedl(v).catch(async (_) => await youtubedlv2(v));
+    const dl_url = await yt.audio[q].download();
+    const ttl = await yt.title;
+    const size_Api = await yt?.size;
+    const sizeApi = size_Api?.replace('MB', '')?.replace('GB', '')?.replace('KB', '')   
+    const sex = await getBuffer(dl_url)
+    const fileSizeInBytes = sex.byteLength;
+    const fileSizeInKB = fileSizeInBytes / 1024;
+    const fileSizeInMB = fileSizeInKB / 1024;
+    const size = fileSizeInMB.toFixed(2);    
+    if (size >= limit_a2) {  
+    await conn.sendMessage(m.chat, {text: `> ⓘ 𝙋𝙪𝙚𝙙𝙚 𝙙𝙚𝙨𝙘𝙖𝙧𝙜𝙖𝙧 𝙨𝙪 𝙖𝙪𝙙𝙞𝙤 𝙚𝙣: ${dl_url}*`}, {quoted: m});
+    return;    
+    }     
+    if (size >= limit_a1 && size <= limit_a2) {  
+    await conn.sendMessage(m.chat, {document: sex, mimetype: 'audio/mpeg', fileName: ttl + `.mp3`}, {quoted: m});   
+    return;
+    } else {
+    await conn.sendMessage(m.chat, {audio: sex, mimetype: 'audio/mpeg', fileName: ttl + `.mp3`}, {quoted: m});   
+    return    
+    }} catch {
+    try {      
+    let info = await ytdl.getInfo(yt_play[0].videoId);
+    let format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+    let buff = ytdl.downloadFromInfo(info, { format: format });
+    let bufs = []
+        buff.on('data', chunk => { bufs.push(chunk) })
+        buff.on('end', async () => {
+    let buff = Buffer.concat(bufs)
+    conn.sendMessage(m.chat, {audio: buff, fileName: yt_play[0].title + '.mp3', mimetype: 'audio/mpeg'}, {quoted: m});
+    })} catch {
+    await YTDL.mp3(yt_play[0].url).then(async (s) => {
+    throw '*[❗] Error, por favor vuelva a intentarlo.*';
+  }
+};
+handler.help = ['play', 'play2'].map((v) => v + ' < busqueda >');
+handler.tags = ['downloader'];
+handler.command = /^(play|play2)$/i;
+export default handler;
 
-//no quites los numeros que contengan "true"
-global.owner = [
- ['5491168758497', '👑 𝘾𝙧𝙚𝙖𝙙𝙤𝙧 👑', true],
- ['593939005387', '🛡️ 𝗝𝗼𝘀𝘁𝗶𝗻 𝗢𝘄𝗻𝗲𝗿 𝗢𝗙𝗖 🛡️', true],
- ['17202635863', '𝗢𝘄𝗻𝗲𝗿2', true],
- ['50558124470', 'Ender Owner3', true]]
+async function search(query, options = {}) {
+  const search = await yts.search({query, hl: 'es', gl: 'ES', ...options});
+  return search.videos;
+}
 
+function MilesNumber(number) {
+  const exp = /(\d)(?=(\d{3})+(?!\d))/g;
+  const rep = '$1.';
+  const arr = number.toString().split('.');
+  arr[0] = arr[0].replace(exp, rep);
+  return arr[1] ? arr.join('.') : arr[0];
+}
 
-global.suittag = ['5491168758497'];
-global.prems = ['5491168758497'];
+function secondString(seconds) {
+  seconds = Number(seconds);
+  const d = Math.floor(seconds / (3600 * 24));
+  const h = Math.floor((seconds % (3600 * 24)) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const dDisplay = d > 0 ? d + (d == 1 ? ' día, ' : ' días, ') : '';
+  const hDisplay = h > 0 ? h + (h == 1 ? ' hora, ' : ' horas, ') : '';
+  const mDisplay = m > 0 ? m + (m == 1 ? ' minuto, ' : ' minutos, ') : '';
+  const sDisplay = s > 0 ? s + (s == 1 ? ' segundo' : ' segundos') : '';
+  return dDisplay + hDisplay + mDisplay + sDisplay;
+}
 
+function bytesToSize(bytes) {
+  return new Promise((resolve, reject) => {
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes === 0) return 'n/a';
+    const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)), 10);
+    if (i === 0) resolve(`${bytes} ${sizes[i]}`);
+    resolve(`${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`);
+  });
+}
 
-global.packname = '🌷 𝙳𝙸𝙰𝙱𝙻𝙰𝙱𝙾𝚃-𝙼𝙳 🌹';
-global.author = '𝐃𝐢𝐚𝐛𝐥𝐚𝐁𝐨𝐭';
-global.wm = '🍁 𝕯𝖎𝖆𝖇𝖑𝖆𝕭𝖔𝖙-𝕸𝕯 🌸';
-global.sk = '🌹 𝐃𝐢𝐚𝐛𝐥𝐚𝐌𝐃 💮';
-global.titulowm = '🍁 𝖣𝗂𝖺𝖻𝗅𝖺 : 𝖡𝗈𝗍🪷';
-global.titulowm2 = `𝖣𝗂𝖺𝖻𝗅𝖺 : 𝖡𝗈𝗍 - 𝖬𝖣 ☘️`
-global.igfg = '𝘋𝘪𝘢𝘣𝘭𝘪𝘵𝘢𝘉𝘰𝘵-𝘔𝘋';
-global.wait = '*⏳ 𝙲𝙰𝚁𝙶𝙰𝙽𝙳𝙾....*';
-global.vs = '1.5.5';
+async function ytMp3(url) {
+  return new Promise((resolve, reject) => {
+    ytdl.getInfo(url).then(async (getUrl) => {
+      const result = [];
+      for (let i = 0; i < getUrl.formats.length; i++) {
+        const item = getUrl.formats[i];
+        if (item.mimeType == 'audio/webm; codecs=\"opus\"') {
+          const {contentLength} = item;
+          const bytes = await bytesToSize(contentLength);
+          result[i] = {audio: item.url, size: bytes};
+        }
+      }
+      const resultFix = result.filter((x) => x.audio != undefined && x.size != undefined);
+      const tiny = await axios.get(`https://tinyurl.com/api-create.php?url=${resultFix[0].audio}`);
+      const tinyUrl = tiny.data;
+      const title = getUrl.videoDetails.title;
+      const thumb = getUrl.player_response.microformat.playerMicroformatRenderer.thumbnail.thumbnails[0].url;
+      resolve({title, result: tinyUrl, result2: resultFix, thumb});
+    }).catch(reject);
+  });
+}
 
+async function ytMp4(url) {
+  return new Promise(async (resolve, reject) => {
+    ytdl.getInfo(url).then(async (getUrl) => {
+      const result = [];
+      for (let i = 0; i < getUrl.formats.length; i++) {
+        const item = getUrl.formats[i];
+        if (item.container == 'mp4' && item.hasVideo == true && item.hasAudio == true) {
+          const {qualityLabel, contentLength} = item;
+          const bytes = await bytesToSize(contentLength);
+          result[i] = {video: item.url, quality: qualityLabel, size: bytes};
+        }
+      }
+      const resultFix = result.filter((x) => x.video != undefined && x.size != undefined && x.quality != undefined);
+      const tiny = await axios.get(`https://tinyurl.com/api-create.php?url=${resultFix[0].video}`);
+      const tinyUrl = tiny.data;
+      const title = getUrl.videoDetails.title;
+      const thumb = getUrl.player_response.microformat.playerMicroformatRenderer.thumbnail.thumbnails[0].url;
+      resolve({title, result: tinyUrl, rersult2: resultFix[0].video, thumb});
+    }).catch(reject);
+  });
+}
 
-global.imagen1 = fs.readFileSync('./Menu2.jpg');
-global.imagen2 = fs.readFileSync('./src/nuevobot.jpg');
-global.imagen3 = fs.readFileSync('./src/NaufraMD.png');
-global.imagen4 = fs.readFileSync('./Menu.png');
-global.imagen5 = fs.readFileSync('./src/+18.jpg');
-global.imagen6 = fs.readFileSync('./Menu3.png');
-global.imagen7 = fs.readFileSync('./Menu6.jpg')
-global.imagen8 = fs.readFileSync('./Menu4.jpg')
+async function ytPlay(query) {
+  return new Promise((resolve, reject) => {
+    yts(query).then(async (getData) => {
+      const result = getData.videos.slice( 0, 5 );
+      const url = [];
+      for (let i = 0; i < result.length; i++) {
+        url.push(result[i].url);
+      }
+      const random = url[0];
+      const getAudio = await ytMp3(random);
+      resolve(getAudio);
+    }).catch(reject);
+  });
+}
 
+async function ytPlayVid(query) {
+  return new Promise((resolve, reject) => {
+    yts(query).then(async (getData) => {
+      const result = getData.videos.slice( 0, 5 );
+      const url = [];
+      for (let i = 0; i < result.length; i++) {
+        url.push(result[i].url);
+      }
+      const random = url[0];
+      const getVideo = await ytMp4(random);
+      resolve(getVideo);
+    }).catch(reject);
+  });
+}
 
-global.gp1 = 'https://chat.whatsapp.com/DCjR7iTdg5q3Si4TbuwRjR'
-global.gp2 = 'https://www.paypal.me/ColaboracionBotOFC'
-global.gp3 = 'https://www.instagram.com/naufrazapp?igsh=Y2g1ZXJxbm53eXAy'
-global.gp4 = 'https://www.tiktok.com/@naufra.zapp?_t=8kcJigwvtji&_r=1'
-global.gp5 = 'https://chat.whatsapp.com/CH6Kc8UEpASLJCVasfZOuC' //colaboración
-global.channel = 'https://whatsapp.com/channel/0029VaFbERfFnSz5zeyfpi3L'
-global.paypal = ''
-global.yt = 'https://youtube.com/@Enzito-19'
-global.md = 'https://github.com/EnzoVaselevich/DiablaBot-MD-OFC-'
-global.fb = 'https://www.facebook.com/share/8XyV52kz3sfhrzft/?mibextid=qi2Omg'
-
-//MENSAJES RANDOM:
-global.naufraMenus = [imagen1, imagen2, imagen3, imagen4, imagen5, imagen6, imagen7, imagen8]
-global.naufraRedes = [gp1, gp2, gp3, gp4, channel, paypal, yt, md, fb]
-
-
-var ase = new Date(); var hour = ase.getHours(); switch(hour){ case 0: hour = 'Linda Mañana'; break; case 1: hour = 'Linda Mañana'; break; case 2: hour = 'Linda Mañana'; break; case 3: hour = 'Linda Mañana'; break; case 4: hour = 'linda mañana'; break; case 5: hour = 'Linda Mañana'; break; case 6: hour = 'Linda Mañana'; break; case 7: hour = 'Linda Mañana'; break; case 8: hour = 'Linda Mañana'; break; case 9: hour = 'Linda Mañana'; break; case 10: hour = 'Lindo Dia'; break; case 11: hour = 'Lindo Dia'; break; case 12: hour = 'Lindo Dia'; break; case 13: hour = 'Lindo Dia'; break; case 14: hour = 'Linda Tarde'; break; case 15: hour = 'Linda Tarde'; break; case 16: hour = 'Linda Tarde'; break; case 17: hour = 'Linda Tarde'; break; case 18: hour = 'Linda Noche'; break; case 19: hour = 'Linda Noche'; break; case 20: hour = 'Linda Noche'; break; case 21: hour = 'Linda Noche'; break; case 22: hour = 'Linda Noche'; break; case 23: hour = 'Linda Noche'; break;}
-global.saludo = '🌹' + hour;
-
-global.mods = [];
-
-global.d = new Date(new Date + 3600000);
-global.locale = 'es';
-global.dia = d.toLocaleDateString(locale, {weekday: 'long'});
-global.fecha = d.toLocaleDateString('es', {day: 'numeric', month: 'numeric', year: 'numeric'});
-global.mes = d.toLocaleDateString('es', {month: 'long'});
-global.año = d.toLocaleDateString('es', {year: 'numeric'});
-global.tiempo = d.toLocaleString('en-US', {hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true});
-
-
-global.wm2 = `${dia} ${fecha}\nNaufraBot`;
-global.gt = 'DiablaBot';
-global.mysticbot = '𝗗𝗜𝗔𝗕𝗟𝗔𝗕𝗢𝗧-𝗠𝗗🌸';
-global.mysticbot = 'https://whatsapp.com/channel/0029VaFbERfFnSz5zeyfpi3L';
-global.waitt = '*⏳ 𝙲𝙰𝚁𝙶𝙰𝙽𝙳𝙾....*';
-global.waittt = '*⏳ 𝙲𝙰𝚁𝙶𝙰𝙽𝙳𝙾....*';
-global.waitttt = '*⏳ 𝙲𝙰𝚁𝙶𝙰𝙽𝙳𝙾....*';
-global.nomorown = '5491168758497';
-global.pdoc = ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/msword', 'application/pdf', 'text/rtf'];
-global.cmenut = '❖––––––『';
-global.cmenub = '┊✦ ';
-global.cmenuf = '╰━═┅═━––––––๑\n';
-global.cmenua = '\n⌕ ❙❘❙❙❘❙❚❙❘❙❙❚❙❘❙❘❙❚❙❘❙❙❚❙❘❙❙❘❙❚❙❘ ⌕\n     ';
-global.dmenut = '*❖─┅──┅〈*';
-global.dmenub = '*┊»*';
-global.dmenub2 = '*┊*';
-global.dmenuf = '*╰┅────────┅✦*';
-global.htjava = '⫹⫺';
-global.htki = '*⭑•̩̩͙⊱•••• ☪*';
-global.htka = '*☪ ••••̩̩͙⊰•⭑*';
-global.comienzo = '• • ◕◕════';
-global.fin = '════◕◕ • •';
-global.botdate = `*📆 Fecha:*  ${moment.tz('America/Mexico_City').format('DD/MM/YY')}`;
-global.bottime = `*⏰ Hora:* ${moment.tz('America/Mexico_City').format('HH:mm:ss')}`;
-global.fgif = {key: {participant: '0@s.whatsapp.net'}, message: {'videoMessage': {'title': wm, 'h': `Hmm`, 'seconds': '999999999', 'gifPlayback': 'true', 'caption': bottime, 'jpegThumbnail': fs.readFileSync('./Menu.png')}}};
-global.multiplier = 99;
-global.flaaa = [
-  'https://flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=water-logo&script=water-logo&fontsize=90&doScale=true&scaleWidth=800&scaleHeight=500&fontsize=100&fillTextColor=%23000&shadowGlowColor=%23000&backgroundColor=%23000&text=',
-  'https://flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=crafts-logo&fontsize=90&doScale=true&scaleWidth=800&scaleHeight=500&text=',
-  'https://flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=amped-logo&doScale=true&scaleWidth=800&scaleHeight=500&text=',
-  'https://www6.flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=sketch-name&doScale=true&scaleWidth=800&scaleHeight=500&fontsize=100&fillTextType=1&fillTextPattern=Warning!&text=',
-  'https://www6.flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=sketch-name&doScale=true&scaleWidth=800&scaleHeight=500&fontsize=100&fillTextType=1&fillTextPattern=Warning!&fillColor1Color=%23f2aa4c&fillColor2Color=%23f2aa4c&fillColor3Color=%23f2aa4c&fillColor4Color=%23f2aa4c&fillColor5Color=%23f2aa4c&fillColor6Color=%23f2aa4c&fillColor7Color=%23f2aa4c&fillColor8Color=%23f2aa4c&fillColor9Color=%23f2aa4c&fillColor10Color=%23f2aa4c&fillOutlineColor=%23f2aa4c&fillOutline2Color=%23f2aa4c&backgroundColor=%23101820&text=',
-];
-
-
-const file = fileURLToPath(import.meta.url);
-watchFile(file, () => {
-  unwatchFile(file);
-  console.log(chalk.redBright('Update \'config.js\''));
-  import(`${file}?update=${Date.now()}`);
-});
+const getBuffer = async (url, options) => {
+    options ? options : {};
+    const res = await axios({method: 'get', url, headers: {'DNT': 1, 'Upgrade-Insecure-Request': 1,}, ...options, responseType: 'arraybuffer'});
+    return res.data;
+};*/
